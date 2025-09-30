@@ -6,9 +6,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace exoModelsProjet.Models
+namespace LearnPlay.Models
 {
-    internal class Utilisateurs
+    public class Utilisateurs
     {
         [Key]
         public int IdUti { get; set; }
