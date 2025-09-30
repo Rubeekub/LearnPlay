@@ -1,168 +1,318 @@
-﻿using exoModelsProjet.Models;
-using LearnPlay.Data;
+﻿using LearnPlay.Interfaces;
+using LearnPlay.Models;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace LearnPlay.repository
+namespace LearnPlay.Repository
 {
-    internal class UtilisateursRepo
+    public class UtilisateursRepo : IUtilisateursRepository
     {
-        private SqlConnection? activeConnexion;
+        private SqlConnection activeConnexion;
 
-        public void dbConnecter()
-        {
-            Connexion _cs = new Connexion();
-            this.activeConnexion = _cs.OpenConnection();
-            Console.WriteLine("Connexion établie");
-        }
-
-        public Utilisateurs GetById(int idUti)
+        public UtilisateursRepo()
         {
             dbConnecter();
+        }
+
+        private void dbConnecter()
+        {
+            Connexion con = new Connexion();
+            activeConnexion = con.GetConnection();
+            if (activeConnexion.State != ConnectionState.Open)
+            {
+                activeConnexion.Open();
+            }
+        }
+
+        private void VerifConnexion()
+        {
+            if (activeConnexion == null)
+            {
+                dbConnecter();
+                return;
+            }
+
+            if (activeConnexion.State != ConnectionState.Open)
+            {
+                dbConnecter();
+            }
+        }
+
+        // ================== Helpers ==================
+
+        private static Utilisateurs MapReader(SqlDataReader rd)
+        {
+            Utilisateurs u = new Utilisateurs();
+            int iId = rd.GetOrdinal("idUti");
+            int iNom = rd.GetOrdinal("nomUti");
+            int iPrenom = rd.GetOrdinal("prenomUti");
+            int iMail = rd.GetOrdinal("mailUti");
+            int iMdp = rd.GetOrdinal("mdpUti");
+            int iDate = rd.GetOrdinal("dateInscription");
+
+            u.IdUti = rd.GetInt32(iId);
+            if (rd.IsDBNull(iNom)) u.NomUti = string.Empty; else u.NomUti = rd.GetString(iNom);
+            if (rd.IsDBNull(iPrenom)) u.PrenomUti = string.Empty; else u.PrenomUti = rd.GetString(iPrenom);
+            u.MailUti = rd.GetString(iMail);
+            u.MdpUti = (byte[])rd.GetValue(iMdp);   // VARBINARY(64)
+            DateTime d = rd.GetDateTime(iDate);
+            u.DateInscription = d;
+
+            // Le modèle a IdProfActif, mais la table ne l'a pas dans LearnPlayDb.sql
+            // u.IdProfActif = null;
+
+            return u;
+        }
+
+        // ================== Lectures ==================
+
+        public Utilisateurs? GetById(int idUti)
+        {
+            VerifConnexion();
 
             using SqlCommand cmd = activeConnexion.CreateCommand();
-
             cmd.CommandText = @"
-            SELECT idUti, nomUti, prenomUti, mailUti, mdpUti, dateInscription, idProfActif
-            FROM utilisateurs WHERE idUti=@id;";
-            cmd.Parameters.AddWithValue("@id", idUti);
+SELECT idUti, nomUti, prenomUti, mailUti, mdpUti, dateInscription
+FROM utilisateurs
+WHERE idUti = @id;";
+            cmd.Parameters.Add("@id", SqlDbType.Int).Value = idUti;
 
-            using var rd = cmd.ExecuteReader();
-            if (!rd.Read()) return null;
+            using SqlDataReader rd = cmd.ExecuteReader();
+            if (!rd.Read())
+            {
+                return null;
+            }
 
-            var u = new Utilisateurs();
-            u.IdUti = rd.GetInt32(0);
-            u.NomUti = rd.IsDBNull(1) ? null : rd.GetString(1);
-            u.PrenomUti = rd.IsDBNull(2) ? null : rd.GetString(2);
-            u.MailUti = rd.GetString(3);
-            u.MdpUti = (byte[])rd["mdpUti"];
-            u.DateInscription = rd.GetDateTime(5);
-            u.IdProfActif = rd.IsDBNull(6) ? (int?)null : rd.GetInt32(6);
+            Utilisateurs u = MapReader(rd);
+            return u;
+        }
+
+        public Utilisateurs? GetByEmail(string mailUti)
+        {
+            VerifConnexion();
+
+            using SqlCommand cmd = activeConnexion.CreateCommand();
+            cmd.CommandText = @"
+SELECT idUti, nomUti, prenomUti, mailUti, mdpUti, dateInscription
+FROM utilisateurs
+WHERE mailUti = @m;";
+            cmd.Parameters.Add("@m", SqlDbType.VarChar, 255).Value = mailUti;
+
+            using SqlDataReader rd = cmd.ExecuteReader();
+            if (!rd.Read())
+            {
+                return null;
+            }
+
+            Utilisateurs u = MapReader(rd);
             return u;
         }
 
         public List<Utilisateurs> GetAll()
         {
-            var list = new List<Utilisateurs>();
-            using var cn = new SqlConnection(_cs);
-            cn.Open();
-            var cmd = new SqlCommand(@"
-            SELECT idUti, nomUti, prenomUti, mailUti, mdpUti, dateInscription, idProfActif
-            FROM utilisateurs;", cn);
+            VerifConnexion();
 
-            using var rd = cmd.ExecuteReader();
+            List<Utilisateurs> list = new List<Utilisateurs>();
+
+            using SqlCommand cmd = activeConnexion.CreateCommand();
+            cmd.CommandText = @"
+SELECT idUti, nomUti, prenomUti, mailUti, mdpUti, dateInscription
+FROM utilisateurs
+ORDER BY idUti;";
+
+            using SqlDataReader rd = cmd.ExecuteReader();
             while (rd.Read())
             {
-                var u = new Utilisateurs();
-                u.IdUti = rd.GetInt32(0);
-                u.NomUti = rd.IsDBNull(1) ? null : rd.GetString(1);
-                u.PrenomUti = rd.IsDBNull(2) ? null : rd.GetString(2);
-                u.MailUti = rd.GetString(3);
-                u.MdpUti = (byte[])rd["mdpUti"];
-                u.DateInscription = rd.GetDateTime(5);
-                u.IdProfActif = rd.IsDBNull(6) ? (int?)null : rd.GetInt32(6);
+                Utilisateurs u = MapReader(rd);
                 list.Add(u);
             }
+
             return list;
         }
 
-        public int Create(string nom, string prenom, string mail, byte[] mdpHash, DateTime dateInscription)
+        //  Création 
+
+        public Utilisateurs Create(Utilisateurs u)
         {
-            using var cn = new SqlConnection(_cs);
-            cn.Open();
-            var cmd = new SqlCommand(@"
-INSERT INTO utilisateurs(nomUti, prenomUti, mailUti, mdpUti, dateInscription)
-VALUES(@n,@p,@m,@h,@d);
-SELECT CAST(SCOPE_IDENTITY() AS INT);", cn);
-            cmd.Parameters.AddWithValue("@n", (object?)nom ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@p", (object?)prenom ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@m", mail);
-            cmd.Parameters.Add("@h", System.Data.SqlDbType.VarBinary, 64).Value = mdpHash;
-            cmd.Parameters.AddWithValue("@d", dateInscription);
-            var id = (int)cmd.ExecuteScalar();
-            return id;
-        }
+            VerifConnexion();
 
-        public bool UpdateEmail(int idUti, string newMail)
-        {
-            using var cn = new SqlConnection(_cs);
-            cn.Open();
-            var cmd = new SqlCommand("UPDATE utilisateurs SET mailUti=@m WHERE idUti=@id;", cn);
-            cmd.Parameters.AddWithValue("@m", newMail);
-            cmd.Parameters.AddWithValue("@id", idUti);
-            var rows = cmd.ExecuteNonQuery();
-            return rows == 1;
-        }
-
-        public bool UpdatePassword(int idUti, byte[] oldHash, byte[] newHash)
-        {
-            using var cn = new SqlConnection(_cs);
-            cn.Open();
-
-            // 1) lire hash courant
-            var cmdRead = new SqlCommand("SELECT mdpUti FROM utilisateurs WHERE idUti=@id;", cn);
-            cmdRead.Parameters.AddWithValue("@id", idUti);
-            var current = (byte[])cmdRead.ExecuteScalar();
-            if (current == null) return false;
-
-            // 2) comparer
-            var sameLength = current.Length == oldHash.Length;
-            if (!sameLength) return false;
-            var i = 0;
-            while (i < current.Length)
+            // Unicité mail (la base a déjà UNIQUE, on évite l'exception)
+            using (SqlCommand c0 = activeConnexion.CreateCommand())
             {
-                if (current[i] != oldHash[i]) return false;
-                i = i + 1;
+                c0.CommandText = "SELECT COUNT(*) FROM utilisateurs WHERE mailUti = @m;";
+                c0.Parameters.Add("@m", SqlDbType.VarChar, 255).Value = u.MailUti ?? string.Empty;
+                object countObj = c0.ExecuteScalar();
+                int exists = Convert.ToInt32(countObj);
+                if (exists > 0)
+                {
+                    throw new InvalidOperationException("Email déjà utilisé.");
+                }
             }
 
-            // 3) update
-            var cmd = new SqlCommand("UPDATE utilisateurs SET mdpUti=@h WHERE idUti=@id;", cn);
-            cmd.Parameters.Add("@h", System.Data.SqlDbType.VarBinary, 64).Value = newHash;
-            cmd.Parameters.AddWithValue("@id", idUti);
-            var rows = cmd.ExecuteNonQuery();
-            return rows == 1;
+            using SqlCommand cmd = activeConnexion.CreateCommand();
+            cmd.CommandText = @"
+INSERT INTO utilisateurs (nomUti, prenomUti, mailUti, mdpUti, dateInscription)
+VALUES (@n, @p, @m, @h, @d);
+SELECT CAST(SCOPE_IDENTITY() AS INT);";     // récupérer l’ID auto-généré
+            //ExecuteScalar() te renvoie l’ID.
+
+            if (string.IsNullOrWhiteSpace(u.NomUti))
+            {
+                cmd.Parameters.Add("@n", SqlDbType.VarChar, 50).Value = DBNull.Value;
+            }
+            else
+            {
+                cmd.Parameters.Add("@n", SqlDbType.VarChar, 50).Value = u.NomUti;
+            }
+
+            if (string.IsNullOrWhiteSpace(u.PrenomUti))
+            {
+                cmd.Parameters.Add("@p", SqlDbType.VarChar, 50).Value = DBNull.Value;
+            }
+            else
+            {
+                cmd.Parameters.Add("@p", SqlDbType.VarChar, 50).Value = u.PrenomUti;
+            }
+
+            cmd.Parameters.Add("@m", SqlDbType.VarChar, 255).Value = u.MailUti ?? string.Empty;
+
+            if (u.MdpUti == null)
+            {
+                throw new ArgumentException("Le hash de mot de passe est requis (MdpUti).");
+            }
+            cmd.Parameters.Add("@h", SqlDbType.VarBinary, 64).Value = u.MdpUti;
+
+            DateTime date = u.DateInscription;
+            if (date == default)
+            {
+                date = DateTime.UtcNow.Date;
+            }
+            cmd.Parameters.Add("@d", SqlDbType.Date).Value = date;
+
+            object newIdObj = cmd.ExecuteScalar();
+            int newId = Convert.ToInt32(newIdObj);
+
+            Utilisateurs created = GetById(newId);
+            return created;
         }
 
-        public int? GetActiveProfileId(int idUti)
+        //  Mises à jour 
+
+        public bool UpdateIdentite(int idUti, string? nom, string? prenom)
         {
-            using var cn = new SqlConnection(_cs);
-            cn.Open();
-            var cmd = new SqlCommand("SELECT idProfActif FROM utilisateurs WHERE idUti=@id;", cn);
-            cmd.Parameters.AddWithValue("@id", idUti);
-            var val = cmd.ExecuteScalar();
-            if (val == null || val == DBNull.Value) return null;
-            return (int)val;
+            VerifConnexion();
+
+            using SqlCommand cmd = activeConnexion.CreateCommand();
+            cmd.CommandText = @"
+UPDATE utilisateurs
+SET
+  nomUti = COALESCE(@n, nomUti),
+  prenomUti = COALESCE(@p, prenomUti)
+WHERE idUti = @id;";
+
+            if (string.IsNullOrWhiteSpace(nom))
+            {
+                cmd.Parameters.Add("@n", SqlDbType.VarChar, 50).Value = DBNull.Value;
+            }
+            else
+            {
+                cmd.Parameters.Add("@n", SqlDbType.VarChar, 50).Value = nom.Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(prenom))
+            {
+                cmd.Parameters.Add("@p", SqlDbType.VarChar, 50).Value = DBNull.Value;
+            }
+            else
+            {
+                cmd.Parameters.Add("@p", SqlDbType.VarChar, 50).Value = prenom.Trim();
+            }
+
+            cmd.Parameters.Add("@id", SqlDbType.Int).Value = idUti;
+
+            int rows = cmd.ExecuteNonQuery();
+            if (rows == 1)
+            {
+                return true;
+            }
+
+            return false;
         }
 
-        public bool SetActiveProfile(int idUti, int idProf)
+        public bool UpdateEmail(int idUti, string newEmail)
         {
-            using var cn = new SqlConnection(_cs);
-            cn.Open();
+            VerifConnexion();
 
-            // vérifier appartenance profil -> utilisateur
-            var cmdCheck = new SqlCommand("SELECT COUNT(*) FROM profils WHERE idProf=@p AND idUtiProf=@u;", cn);
-            cmdCheck.Parameters.AddWithValue("@p", idProf);
-            cmdCheck.Parameters.AddWithValue("@u", idUti);
-            var count = (int)cmdCheck.ExecuteScalar();
-            if (count == 0) return false;
+            // Vérif unicité
+            using (SqlCommand c0 = activeConnexion.CreateCommand())
+            {
+                c0.CommandText = "SELECT COUNT(*) FROM utilisateurs WHERE mailUti = @m AND idUti <> @id;";
+                c0.Parameters.Add("@m", SqlDbType.VarChar, 255).Value = newEmail ?? string.Empty;
+                c0.Parameters.Add("@id", SqlDbType.Int).Value = idUti;
+                object countObj = c0.ExecuteScalar();
+                int exists = Convert.ToInt32(countObj);
+                if (exists > 0)
+                {
+                    return false;
+                }
+            }
 
-            // maj
-            var cmd = new SqlCommand("UPDATE utilisateurs SET idProfActif=@p WHERE idUti=@u;", cn);
-            cmd.Parameters.AddWithValue("@p", idProf);
-            cmd.Parameters.AddWithValue("@u", idUti);
-            var rows = cmd.ExecuteNonQuery();
-            return rows == 1;
+            using SqlCommand cmd = activeConnexion.CreateCommand();
+            cmd.CommandText = "UPDATE utilisateurs SET mailUti = @m WHERE idUti = @id;";
+            cmd.Parameters.Add("@m", SqlDbType.VarChar, 255).Value = newEmail ?? string.Empty;
+            cmd.Parameters.Add("@id", SqlDbType.Int).Value = idUti;
+
+            int rows = cmd.ExecuteNonQuery();
+            if (rows == 1)
+            {
+                return true;
+            }
+
+            return false;
         }
 
-        public bool RequestDeletion(int idUti)
+        public bool UpdatePasswordHash(int idUti, byte[] newHash)
         {
-            // Placeholder : à brancher sur une SP si tu implémentes la “mise en attente 15j”
-            // Exemple : EXEC DemanderSuppression @idUti
-            return true;
+            VerifConnexion();
+
+            if (newHash == null)
+            {
+                return false;
+            }
+
+            using SqlCommand cmd = activeConnexion.CreateCommand();
+            cmd.CommandText = "UPDATE utilisateurs SET mdpUti = @h WHERE idUti = @id;";
+            cmd.Parameters.Add("@h", SqlDbType.VarBinary, 64).Value = newHash;
+            cmd.Parameters.Add("@id", SqlDbType.Int).Value = idUti;
+
+            int rows = cmd.ExecuteNonQuery();
+            if (rows == 1)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        //  Suppression 
+
+        public bool Delete(int idUti)
+        {
+            VerifConnexion();
+
+            using SqlCommand cmd = activeConnexion.CreateCommand();
+            cmd.CommandText = "DELETE FROM utilisateurs WHERE idUti = @id;";
+            cmd.Parameters.Add("@id", SqlDbType.Int).Value = idUti;
+
+            int rows = cmd.ExecuteNonQuery();
+            if (rows == 1)
+            {
+                return true;
+            }
+
+            return false;
         }
     }
+}
