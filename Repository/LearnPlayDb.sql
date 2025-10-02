@@ -1,13 +1,12 @@
-﻿/*  Preparation de la création de la base de données*/
-Use MASTER;
+/*  Preparation de la création de la base de données*/
+USE master;
 GO
-DROP DATABASE IF EXISTS LearnPlay;
+IF DB_ID('LearnPlay') IS NOT NULL DROP DATABASE LearnPlay;
 GO
-
-/* Création de la base de données */
 CREATE DATABASE LearnPlay;
 GO
 USE LearnPlay;
+GO
 
 -- Création de la table "utilisateurs"
 CREATE TABLE utilisateurs (
@@ -45,7 +44,7 @@ CREATE TABLE profils (
 --La primary key
 ALTER TABLE profils ADD CONSTRAINT pK_idProf PRIMARY KEY (idProf);
 --clefs étrangères de “profils”
-ALTER TABLE profils ADD CONSTRAINT FK_idUtiProf FOREIGN KEY (idUtiProf) REFERENCES utilisateurs(idUti) ;
+ALTER TABLE profils ADD CONSTRAINT FK_idUtiProf FOREIGN KEY (idUtiProf) REFERENCES utilisateurs(idUti)ON DELETE CASCADE ;
 ALTER TABLE profils ADD CONSTRAINT FK_idRoleProf FOREIGN KEY (idRoleProf) REFERENCES roles(idRole);
 GO
 
@@ -93,7 +92,7 @@ CREATE TABLE profilsThemes (
 ALTER TABLE  profilsThemes ADD CONSTRAINT pK_idProfilsThemes  PRIMARY KEY (idThemeProf, idProfTheme);
 --clef étrangère de "profilsThemes"
 ALTER TABLE profilsThemes ADD CONSTRAINT FK_idThemeProf FOREIGN KEY (idThemeProf) REFERENCES themes(idTheme);
-ALTER TABLE profilsThemes ADD CONSTRAINT FK_idProfTheme FOREIGN KEY (idProfTheme) REFERENCES profils(idProf);
+ALTER TABLE profilsThemes ADD CONSTRAINT FK_idProfTheme FOREIGN KEY (idProfTheme) REFERENCES profils(idProf) ON DELETE CASCADE;
 GO
 
 -- Création de la table "profilsImages" (table d'association entre profils et images)
@@ -106,7 +105,7 @@ CREATE TABLE profilsImages (
 ALTER TABLE profilsImages ADD CONSTRAINT pK_idProfilsImages  PRIMARY KEY (idImgProf, idProfImg);
 --clef étrangère "profilsImages"
 ALTER TABLE profilsImages ADD CONSTRAINT FK_idImgProf FOREIGN KEY (idImgProf) REFERENCES images(idImg);
-ALTER TABLE profilsImages ADD CONSTRAINT FK_idProfImg FOREIGN KEY (idProfImg) REFERENCES profils(idProf);
+ALTER TABLE profilsImages ADD CONSTRAINT FK_idProfImg FOREIGN KEY (idProfImg) REFERENCES profils(idProf) ON DELETE CASCADE;
 GO
 
 -- Création de la table "achats"
@@ -121,7 +120,7 @@ CREATE TABLE achats (
 --La primary key
 ALTER TABLE achats ADD CONSTRAINT pK_idAchat  PRIMARY KEY (idAchat);
 -- Clé étrangère de la table achats
-ALTER TABLE achats ADD CONSTRAINT FK_idProfAchat FOREIGN KEY (idProfAchat) REFERENCES profils(idProf);
+ALTER TABLE achats ADD CONSTRAINT FK_idProfAchat FOREIGN KEY (idProfAchat) REFERENCES profils(idProf) ON DELETE CASCADE;
 GO
 
 -- Création de la table "themesAchats" (table d'association entre themes et Achats)
@@ -133,7 +132,7 @@ CREATE TABLE themesAchats (
 ALTER TABLE themesAchats ADD CONSTRAINT pK_idThemesAchats PRIMARY KEY (idThemeAchat, idAchatTheme);
 --clefs étrangères "themesAchats"
 ALTER TABLE themesAchats ADD CONSTRAINT FK_idThemeAchat FOREIGN KEY (idThemeAchat) REFERENCES themes(idTheme);
-ALTER TABLE themesAchats ADD CONSTRAINT FK_idAchatTheme FOREIGN KEY (idAchatTheme) REFERENCES achats(idAchat);
+ALTER TABLE themesAchats ADD CONSTRAINT FK_idAchatTheme FOREIGN KEY (idAchatTheme) REFERENCES achats(idAchat) ON DELETE CASCADE;
 GO
 
 -- Création de la table "imagesAchats" (table d'association entre images et achats)
@@ -145,7 +144,7 @@ CREATE TABLE imagesAchats (
 ALTER TABLE imagesAchats ADD CONSTRAINT pK_idImagesAchats PRIMARY KEY (idImgAchat, idAchatImg);
 --clefs étrangères "imagesAchats" 
 ALTER TABLE imagesAchats ADD CONSTRAINT FK_idImgAchat FOREIGN KEY (idImgAchat ) REFERENCES images(idImg);
-ALTER TABLE imagesAchats ADD CONSTRAINT FK_idAchatImg FOREIGN KEY (idAchatImg ) REFERENCES achats(idAchat);
+ALTER TABLE imagesAchats ADD CONSTRAINT FK_idAchatImg FOREIGN KEY (idAchatImg ) REFERENCES achats(idAchat) ON DELETE CASCADE;
 GO
 
 -- Création de la table "categories"
@@ -185,7 +184,7 @@ CREATE TABLE applicationsAchats (
 ALTER TABLE applicationsAchats ADD CONSTRAINT pK_applicationsAchats PRIMARY KEY (idAppAchat, idAchatApp);
 --clefs étrangères  “applicationsAchats”
 ALTER TABLE applicationsAchats ADD CONSTRAINT FK_idAppAchat FOREIGN KEY (idAppAchat) REFERENCES applications(idApp);
-ALTER TABLE applicationsAchats ADD CONSTRAINT FK_idAchatApp FOREIGN KEY (idAchatApp) REFERENCES achats(idAchat);
+ALTER TABLE applicationsAchats ADD CONSTRAINT FK_idAchatApp FOREIGN KEY (idAchatApp) REFERENCES achats(idAchat) ON DELETE CASCADE;
 GO
 
 -- Création de la table "niveaux"
@@ -238,8 +237,9 @@ CREATE TABLE profAppRecomp (
 --La primary key
 ALTER TABLE profAppRecomp ADD CONSTRAINT pK_idProfAppRecomp  PRIMARY KEY (idProfil,idRecompense, idApplication);
 --clefs étrangères de “profAppRecomp”
-ALTER TABLE profAppRecomp ADD CONSTRAINT FK_idProfil  FOREIGN KEY (idProfil) REFERENCES profils(idProf) ;
+ALTER TABLE profAppRecomp ADD CONSTRAINT FK_idProfil  FOREIGN KEY (idProfil) REFERENCES profils(idProf)  ON DELETE CASCADE;
 ALTER TABLE profAppRecomp ADD CONSTRAINT FK_idRecompense  FOREIGN KEY (idRecompense ) REFERENCES recompenses(idRecomp);
 ALTER TABLE profAppRecomp ADD CONSTRAINT FK_idApplication  FOREIGN KEY (idApplication ) REFERENCES applications(idApp);
 GO
+
 -- fin ---

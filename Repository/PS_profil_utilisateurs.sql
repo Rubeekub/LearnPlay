@@ -1,29 +1,34 @@
-﻿-- 1 profil par utilisateur
--- patch de la bdd pour ajouter la contrainte
-ALTER TABLE utilisateurs
-  ADD idProfActif INT NULL;
-
-ALTER TABLE utilisateurs
-  ADD CONSTRAINT FK_utilisateurs_idProfActif
-  FOREIGN KEY (idProfActif) REFERENCES profils(idProf)
-  ON DELETE SET NULL;  -- si le profil actif est supprimé
-
-CREATE INDEX IX_utilisateurs_idProfActif ON utilisateurs(idProfActif);
+use  LearnPlay;
 GO
 
--- mettre à jour le profil en vérifiant l'appartennance à l'utilisateur
-CREATE OR ALTER PROCEDURE SetProfilActif
-  @idUti INT,
-  @idProf INT
-AS
+CREATE TRIGGER trg_SuppressionUtilisateur
+   ON  utilisateurs 
+   INSTEAD OF DELETE
+AS 
 BEGIN
-  SET NOCOUNT ON;
+-- Supprimer les entrées dans profAppRecomp associées aux profils supprimés
+DELETE FROM profAppRecomp 
+WHERE idProfil IN (SELECT idProf FROM profils 
+WHERE idUtiProf IN (SELECT idUti FROM deleted));
 
-  IF NOT EXISTS (SELECT 1 FROM profils WHERE idProf=@idProf AND idUtiProf=@idUti)
-     THROW 50021, 'Profil non lié à cet utilisateur', 1;
+    -- Supprimer les entrées dans profilTheme associées aux profils supprimés
+ DELETE FROM profilsThemes
+WHERE idProfTheme IN (SELECT idProf FROM profils 
+WHERE idUtiProf IN (SELECT idUti FROM deleted));
+    
+    -- Supprimer les entrées dans profilsImages associées aux profils supprimés
+ DELETE FROM profilsImages 
+WHERE idProfImg IN (SELECT idProf FROM profils 
+WHERE idUtiProf IN (SELECT idUti FROM deleted));
 
-  UPDATE utilisateurs SET idProfActif=@idProf WHERE idUti=@idUti;
+-- Supprimer enregistrements table profils ( plusieur possible donc IN pas '=')
+DELETE FROM profils 
+WHERE idUtiProf IN (SELECT idUti FROM deleted);
 
-  SELECT idUti, idProfActif FROM utilisateurs WHERE idUti=@idUti;
+--Supprimer les enregistrements de la table utilisateurs
+DELETE FROM utilisateurs 
+WHERE idUti = (SELECT idUti FROM deleted);
 END;
-GO
+
+-- Supprimer Trigger  trg_SuppressionUtilisateur
+DROP TRIGGER  trg_SuppressionUtilisateur;

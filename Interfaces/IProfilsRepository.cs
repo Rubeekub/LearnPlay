@@ -1,4 +1,4 @@
-﻿using LearnPlay.Models;
+using LearnPlay.Models;
 using System;
 using System.Collections.Generic;
 
@@ -10,21 +10,21 @@ namespace LearnPlay.Interfaces
         Profils? AfficheProfil(int idProf);
 
         // Lister les profils d’un utilisateur
-        List<Profils> GetByUsersId(int idUti);
+        List<Profils> ListerUtilisateur(int idUti);
 
         // Créer un profil
-        Profils Create(Profils p);
+        Profils CreerProfil(Profils p);
 
         // Mettre à jour le pseudo (avec contrôle d’unicité)
-        bool UpdatePseudo(int idProf, string newPseudo);
+        bool ModifierPseudo(int idProf, string newPseudo);
 
 
         // Incrémenter/décrémenter les points (clamp à 0)
-        bool UpdatePoints(int idProf, int delta);
+        bool ModifierPoints(int idProf, int delta);
 
         // Mise à jour “cœur” : pseudo/niveau/date de naissance (+ thème & avatar actifs)
  
-        bool UpdateCore(
+        bool MettreAJourCoeurProfil(
             int idProf,
             string? pseudo = null,
             int? niveau = null,
@@ -34,12 +34,12 @@ namespace LearnPlay.Interfaces
         );
 
         // Changer de profil actif pour l’utilisateur (utilisateurs.IdProfActif) 
-        bool SetProfilActifPourUtilisateur(int idUti, int idProf);
+        bool ChangerProfilActif(int idUti, int idProf);
 
         // Obtenir l’ID du thème actif (ou null si aucun)
-        int? GetThemeActifId(int idProf);
+        int? LireThemeActif(int idProf);
 
         // Obtenir l’ID de l’avatar actif (ou null si aucun)
-        int? GetAvatarActifId(int idProf);
+        int? LireAvatarActif(int idProf);
     }
 }

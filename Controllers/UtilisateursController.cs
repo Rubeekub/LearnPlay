@@ -1,7 +1,9 @@
-﻿using LearnPlay.DTO;
+// Controllers/UtilisateursController.cs
+using LearnPlay.DTO;
 using LearnPlay.Interfaces;
 using LearnPlay.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient; // pour SqlException (duplicate key)
 using System.Collections.Generic;
 
 namespace LearnPlay.Controllers
@@ -22,7 +24,8 @@ namespace LearnPlay.Controllers
         public ActionResult<List<Utilisateurs>> GetAll()
         {
             List<Utilisateurs> list = _mt.Lister();
-            return Ok(list);
+            ActionResult<List<Utilisateurs>> result = Ok(list);
+            return result;
         }
 
         // GET: api/utilisateurs/5
@@ -30,12 +33,15 @@ namespace LearnPlay.Controllers
         public ActionResult<Utilisateurs> GetById(int idUti)
         {
             Utilisateurs u = _mt.Lire(idUti);
+
             if (u == null)
             {
-                return NotFound();
+                ActionResult<Utilisateurs> notFound = NotFound();
+                return notFound;
             }
 
-            return Ok(u);
+            ActionResult<Utilisateurs> ok = Ok(u);
+            return ok;
         }
 
         // GET: api/utilisateurs/by-email?email=...
@@ -45,39 +51,45 @@ namespace LearnPlay.Controllers
             if (string.IsNullOrWhiteSpace(email))
             {
                 object payload = new { error = "email_required" };
-                return BadRequest(payload);
+                ActionResult<Utilisateurs> bad = BadRequest(payload);
+                return bad;
             }
 
             Utilisateurs u = _mt.LireParEmail(email);
+
             if (u == null)
             {
-                return NotFound();
+                ActionResult<Utilisateurs> notFound = NotFound();
+                return notFound;
             }
 
-            return Ok(u);
+            ActionResult<Utilisateurs> ok = Ok(u);
+            return ok;
         }
 
         // POST: api/utilisateurs
-        // Remarque : pour rester aligné avec ta couche métier actuelle,
-        // on attend un hash déjà calculé (byte[]). Le JSON peut l'envoyer en base64.
+        // Remarque : on attend un hash déjà calculé (byte[]). Le JSON peut l'envoyer en Base64.
         [HttpPost]
         public ActionResult<Utilisateurs> Create([FromBody] CreateUtilisateurDto dto)
         {
             if (dto == null)
             {
-                return BadRequest();
+                ActionResult<Utilisateurs> bad = BadRequest();
+                return bad;
             }
 
             if (string.IsNullOrWhiteSpace(dto.MailUti))
             {
                 object payload = new { error = "email_required" };
-                return BadRequest(payload);
+                ActionResult<Utilisateurs> bad = BadRequest(payload);
+                return bad;
             }
 
             if (dto.MdpUti == null || dto.MdpUti.Length == 0)
             {
                 object payload = new { error = "password_hash_required" };
-                return BadRequest(payload);
+                ActionResult<Utilisateurs> bad = BadRequest(payload);
+                return bad;
             }
 
             string nom = string.Empty;
@@ -92,10 +104,20 @@ namespace LearnPlay.Controllers
                 prenom = dto.PrenomUti.Trim();
             }
 
-            Utilisateurs created = _mt.Enregistrer(nom, prenom, dto.MailUti, dto.MdpUti);
-
-            object routeValues = new { idUti = created.IdUti };
-            return CreatedAtAction(nameof(GetById), routeValues, created);
+            try
+            {
+                Utilisateurs created = _mt.Enregistrer(nom, prenom, dto.MailUti, dto.MdpUti);
+                object routeValues = new { idUti = created.IdUti };
+                ActionResult<Utilisateurs> result = CreatedAtAction(nameof(GetById), routeValues, created);
+                return result;
+            }
+            catch (SqlException ex) when (ex.Number == 2627 || ex.Number == 2601)
+            {
+                // Violation d'unicité (mailUti UNIQUE)
+                object conflict = new { error = "email_deja_utilise" };
+                ActionResult<Utilisateurs> r = Conflict(conflict);
+                return r;
+            }
         }
 
         // PUT: api/utilisateurs/5/identite
@@ -104,29 +126,32 @@ namespace LearnPlay.Controllers
         {
             if (dto == null)
             {
-                return BadRequest();
+                IActionResult bad = BadRequest();
+                return bad;
             }
 
-            string nom = null;
+            string? nom = null;
             if (!string.IsNullOrWhiteSpace(dto.NomUti))
             {
                 nom = dto.NomUti.Trim();
             }
 
-            string prenom = null;
+            string? prenom = null;
             if (!string.IsNullOrWhiteSpace(dto.PrenomUti))
             {
                 prenom = dto.PrenomUti.Trim();
             }
 
-            bool ok = _mt.ModifierIdentite(idUti, nom, prenom);
-            if (!ok)
+            bool okUpdate = _mt.ModifierIdentite(idUti, nom, prenom);
+            if (!okUpdate)
             {
                 object payload = new { error = "maj_identite_impossible" };
-                return BadRequest(payload);
+                IActionResult bad = BadRequest(payload);
+                return bad;
             }
 
-            return NoContent();
+            IActionResult no = NoContent();
+            return no;
         }
 
         // PUT: api/utilisateurs/5/email
@@ -135,65 +160,83 @@ namespace LearnPlay.Controllers
         {
             if (dto == null)
             {
-                return BadRequest();
+                IActionResult bad = BadRequest();
+                return bad;
             }
 
             if (string.IsNullOrWhiteSpace(dto.MailUti))
             {
                 object payload = new { error = "email_required" };
-                return BadRequest(payload);
+                IActionResult bad = BadRequest(payload);
+                return bad;
             }
 
             string email = dto.MailUti.Trim();
-            bool ok = _mt.ModifierEmail(idUti, email);
-            if (!ok)
+
+            try
+            {
+                bool okUpdate = _mt.ModifierEmail(idUti, email);
+                if (!okUpdate)
+                {
+                    object payload = new { error = "maj_email_impossible" };
+                    IActionResult bad = BadRequest(payload);
+                    return bad;
+                }
+
+                IActionResult no = NoContent();
+                return no;
+            }
+            catch (SqlException ex) when (ex.Number == 2627 || ex.Number == 2601)
             {
                 object conflict = new { error = "email_deja_utilise" };
-                return Conflict(conflict);
+                IActionResult r = Conflict(conflict);
+                return r;
             }
-
-            return NoContent();
         }
 
         // PUT: api/utilisateurs/5/password
-        // On attend un hash (byte[]). Si tu veux accepter le mot de passe "clair",
-        // on fera évoluer la couche Métier pour hasher là-bas (sans rien changer ici).
         [HttpPut("{idUti:int}/password")]
         public IActionResult UpdatePassword(int idUti, [FromBody] UpdatePasswordDto dto)
         {
             if (dto == null)
             {
-                return BadRequest();
+                IActionResult bad = BadRequest();
+                return bad;
             }
 
             if (dto.MdpUti == null || dto.MdpUti.Length == 0)
             {
                 object payload = new { error = "password_hash_required" };
-                return BadRequest(payload);
+                IActionResult bad = BadRequest(payload);
+                return bad;
             }
 
-            bool ok = _mt.ModifierMotDePasse(idUti, dto.MdpUti);
-            if (!ok)
+            bool okUpdate = _mt.ModifierMotDePasse(idUti, dto.MdpUti);
+            if (!okUpdate)
             {
                 object payload = new { error = "maj_password_impossible" };
-                return BadRequest(payload);
+                IActionResult bad = BadRequest(payload);
+                return bad;
             }
 
-            return NoContent();
+            IActionResult no = NoContent();
+            return no;
         }
 
         // DELETE: api/utilisateurs/5
         [HttpDelete("{idUti:int}")]
         public IActionResult Delete(int idUti)
         {
-            bool ok = _mt.Supprimer(idUti);
-            if (!ok)
+            bool okDelete = _mt.Supprimer(idUti);
+            if (!okDelete)
             {
                 object payload = new { error = "suppression_impossible" };
-                return BadRequest(payload);
+                IActionResult bad = BadRequest(payload);
+                return bad;
             }
 
-            return NoContent();
+            IActionResult no = NoContent();
+            return no;
         }
     }
 }

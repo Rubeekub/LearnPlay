@@ -1,4 +1,4 @@
-﻿using LearnPlay.Models;
+using LearnPlay.Models;
 using System;
 using System.Collections.Generic;
 
@@ -6,13 +6,13 @@ namespace LearnPlay.Interfaces
 {
     public interface IProfilsMt
     {
-        Profils? GetProfil(int idProf);
-        List<Profils> GetProfilsUtilisateur(int idUtilisateur);
+        Profils? AfficheProfil(int idProf);
+        List<Profils> ListerUtilisateur(int idUtilisateur);
         Profils CreerProfil(Profils nouveau);
         bool ModifierPseudo(int idProf, string nouveauPseudo);
         bool AjouterPoints(int idProf, int points);
         bool RetirerPoints(int idProf, int points);
-        bool MettreAJourProfil(
+        bool MettreAJourCoeurProfil(
             int idProf,
             string? pseudo = null,
             int? niveau = null,

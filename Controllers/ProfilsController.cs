@@ -1,4 +1,4 @@
-﻿using LearnPlay.Interfaces;
+using LearnPlay.Interfaces;
 using LearnPlay.Models;
 using LearnPlay.Metiers;
 using Microsoft.AspNetCore.Mvc;
@@ -19,9 +19,9 @@ namespace LearnPlay.Controllers
 
         // GET api/profils/42
         [HttpGet("{idProf:int}")]
-        public ActionResult<Profils> GetProfil(int idProf)
+        public ActionResult<Profils> AfficheProfil(int idProf)
         {
-            Profils profil = _mt.GetProfil(idProf);
+            Profils profil = _mt.AfficheProfil(idProf);
             if (profil == null)
             {
                 return NotFound();
@@ -32,9 +32,9 @@ namespace LearnPlay.Controllers
 
         // GET api/profils/utilisateurs/7
         [HttpGet("utilisateurs/{idUti:int}")]
-        public ActionResult<List<Profils>> GetProfilsUtilisateur(int idUti)
+        public ActionResult<List<Profils>> ListerUtilisateur(int idUti)
         {
-            List<Profils> list = _mt.GetProfilsUtilisateur(idUti);
+            List<Profils> list = _mt.ListerUtilisateur(idUti);
             return Ok(list);
         }
 
@@ -67,7 +67,7 @@ namespace LearnPlay.Controllers
             Profils created = _mt.CreerProfil(profil);
 
             object routeValues = new { idProf = created.idProf };
-            return CreatedAtAction(nameof(GetProfil), routeValues, created);
+            return CreatedAtAction(nameof(CreerProfil), routeValues, created);
         }
 
         // PUT api/profils/42/pseudo
@@ -136,7 +136,7 @@ namespace LearnPlay.Controllers
         // PUT api/profils/42
         // Mise à jour cœur : pseudo/niv/dateNaissance + themeId + avatarId (tous optionnels)
         [HttpPut("{idProf:int}")]
-        public IActionResult MettreAJourProfil(int idProf, [FromBody] UpdateCoreDto dto)
+        public IActionResult MettreAJourCoeurProfil(int idProf, [FromBody] UpdateCoreDto dto)
         {
             if (dto == null)
             {
@@ -154,7 +154,7 @@ namespace LearnPlay.Controllers
             int? themeId = dto.themeId;
             int? avatarId = dto.avatarId;
 
-            bool ok = _mt.MettreAJourProfil(idProf, pseudo, niveau, date, themeId, avatarId);
+            bool ok = _mt.MettreAJourCoeurProfil(idProf, pseudo, niveau, date, themeId, avatarId);
 
             if (!ok)
             {

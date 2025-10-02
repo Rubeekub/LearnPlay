@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace LearnPlay.DTO
 {
@@ -6,28 +7,40 @@ namespace LearnPlay.DTO
     // En JSON, envoie la propriété "mdpUti" encodée en base64, le modèle .NET fera la conversion vers byte[].
     public class CreateUtilisateurDto
     {
-        public string NomUti { get; set; }
-        public string PrenomUti { get; set; }
-        public string MailUti { get; set; }
-        public byte[] MdpUti { get; set; }
+        [MaxLength(50)]
+        public string? NomUti { get; set; }
+
+        [MaxLength(50)]
+        public string? PrenomUti { get; set; }
+
+        [Required, MaxLength(255), EmailAddress]
+        public string MailUti { get; set; } = default!;
+
+        [Required, MinLength(64), MaxLength(64)]
+        public byte[] MdpUti { get; set; } = Array.Empty<byte>();
     }
 
     // Mise à jour identité : nom/prénom optionnels (null => pas de changement)
     public class UpdateIdentiteDto
     {
-        public string NomUti { get; set; }
-        public string PrenomUti { get; set; }
+        [MaxLength(50)]
+        public string? NomUti { get; set; }
+
+        [MaxLength(50)]
+        public string? PrenomUti { get; set; }
     }
 
     // Mise à jour email
     public class UpdateEmailDto
     {
-        public string MailUti { get; set; }
+        [Required, MaxLength(255), EmailAddress]
+        public string MailUti { get; set; } = default!;
     }
 
     // Mise à jour mot de passe : hash (byte[])
     public class UpdatePasswordDto
     {
-        public byte[] MdpUti { get; set; }
+        [Required, MinLength(64), MaxLength(64)]
+        public byte[] MdpUti { get; set; } = Array.Empty<byte>();
     }
 }

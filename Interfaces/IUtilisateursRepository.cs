@@ -1,23 +1,23 @@
-﻿using LearnPlay.Models;
+using LearnPlay.Models;
 using System.Collections.Generic;
 
 namespace LearnPlay.Interfaces
 {
     public interface IUtilisateursRepository
     {
-        Utilisateurs? GetById(int idUti);
-        Utilisateurs? GetByEmail(string mailUti);
-        List<Utilisateurs> GetAll();
+        Utilisateurs? Lire(int idUti);
+        Utilisateurs? LireParEmail(string mailUti);
+        List<Utilisateurs> Lister();
 
         // Création : le hash est déjà calculé par la couche métier
-        Utilisateurs Create(Utilisateurs u);
+        Utilisateurs Enregistrer(Utilisateurs u);
 
         // Mises à jour ciblées
-        bool UpdateIdentite(int idUti, string? nom, string? prenom);
-        bool UpdateEmail(int idUti, string newEmail);
-        bool UpdatePasswordHash(int idUti, byte[] newHash);
+        bool ModifierIdentite(int idUti, string? nom, string? prenom);
+        bool ModifierEmail(int idUti, string newEmail);
+        bool ModifierMotDePasse(int idUti, byte[] newHash);
 
         // Suppression
-        bool Delete(int idUti);
+        bool Supprimer(int idUti);
     }
 }

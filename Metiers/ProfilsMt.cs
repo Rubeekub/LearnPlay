@@ -1,4 +1,5 @@
-﻿using LearnPlay.Interfaces;
+// Metiers/ProfilsMt.cs
+using LearnPlay.Interfaces;
 using LearnPlay.Models;
 using System;
 using System.Collections.Generic;
@@ -14,31 +15,57 @@ namespace LearnPlay.Metiers
             _repo = repo;
         }
 
-        public Profils? GetProfil(int idProf)
-            => _repo.AfficheProfil(idProf);
+        public Profils? AfficheProfil(int idProf)
+        {
+            Profils? profil = _repo.AfficheProfil(idProf);
+            return profil;
+        }
 
-        public List<Profils> GetProfilsUtilisateur(int idUtilisateur)
-            => _repo.GetByUsersId(idUtilisateur);
+        public List<Profils> ListerUtilisateur(int idUtilisateur)
+        {
+            List<Profils> list = _repo.ListerUtilisateur(idUtilisateur);
+            return list;
+        }
 
         public Profils CreerProfil(Profils nouveau)
-            => _repo.Create(nouveau);
+        {
+            Profils created = _repo.CreerProfil(nouveau);
+            return created;
+        }
 
         public bool ModifierPseudo(int idProf, string nouveauPseudo)
-            => _repo.UpdatePseudo(idProf, nouveauPseudo);
+        {
+            bool resultat = _repo.ModifierPseudo(idProf, nouveauPseudo);
+            return resultat;
+        }
 
         public bool AjouterPoints(int idProf, int points)
         {
-            if (points <= 0) return false;
-            return _repo.UpdatePoints(idProf, points);
+            bool resultat;
+            if (points <= 0)
+            {
+                resultat = false;
+                return resultat;
+            }
+
+            resultat = _repo.ModifierPoints(idProf, points);
+            return resultat;
         }
 
         public bool RetirerPoints(int idProf, int points)
         {
-            if (points <= 0) return false;
-            return _repo.UpdatePoints(idProf, -points);
+            bool resultat;
+            if (points <= 0)
+            {
+                resultat = false;
+                return resultat;
+            }
+
+            resultat = _repo.ModifierPoints(idProf, -points);
+            return resultat;
         }
 
-        public bool MettreAJourProfil(
+        public bool MettreAJourCoeurProfil(
             int idProf,
             string? pseudo = null,
             int? niveau = null,
@@ -46,16 +73,26 @@ namespace LearnPlay.Metiers
             int? themeId = null,
             int? avatarId = null)
         {
-            return _repo.UpdateCore(idProf, pseudo, niveau, dateNaissance, themeId, avatarId);
+            bool resultat = _repo.MettreAJourCoeurProfil(idProf, pseudo, niveau, dateNaissance, themeId, avatarId);
+            return resultat;
         }
 
         public bool ChangerProfilActif(int idUtilisateur, int idProf)
-            => _repo.SetProfilActifPourUtilisateur(idUtilisateur, idProf);
+        {
+            bool resultat = _repo.ChangerProfilActif(idUtilisateur, idProf);
+            return resultat;
+        }
 
         public int? LireThemeActif(int idProf)
-            => _repo.GetThemeActifId(idProf);
+        {
+            int? id = _repo.LireThemeActif(idProf);
+            return id;
+        }
 
         public int? LireAvatarActif(int idProf)
-            => _repo.GetAvatarActifId(idProf);
+        {
+            int? id = _repo.LireAvatarActif(idProf);
+            return id;
+        }
     }
 }

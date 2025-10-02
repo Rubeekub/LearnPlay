@@ -1,4 +1,4 @@
-﻿using LearnPlay.Interfaces;
+using LearnPlay.Interfaces;
 using LearnPlay.Metiers;
 using LearnPlay.Repository;
 using Microsoft.AspNetCore.Builder;
@@ -45,7 +45,7 @@ namespace LearnPlay
             {
                 options.AddPolicy("Front", policy =>
                     policy
-                        .WithOrigins("http://127.0.0.1:5501", "http://localhost:5501")
+                        .WithOrigins("http://127.0.0.1:5510", "http://localhost:5511")
                         .AllowAnyHeader()
                         .AllowAnyMethod()
                 // .AllowCredentials()  // décommente si tu envoies cookies/Authorization cross-site

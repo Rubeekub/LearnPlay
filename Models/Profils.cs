@@ -1,5 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.InteropServices;
 
 namespace LearnPlay.Models
 {
@@ -10,16 +11,21 @@ namespace LearnPlay.Models
         [Required]
         public int numProf { get; set; }
 
+        [Required, MaxLength(50)]
         public string pseudoProf { get; set; }
 
+        [Required]
         public int pointsProf { get; set; }
 
+        [Required]
         public int nivProf { get; set; }
 
         public DateOnly dateNaissanceProf { get; set; }
 
+        [Required]
         public int idUtiProf {  get; set; }
 
+        [Required]
         public int idRoleProf {  get; set; }
 
   
